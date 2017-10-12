@@ -1,5 +1,6 @@
 var express = require("express");
 var bodyParser = require("body-parser");
+const {ObjectID} = require('mongodb');
 
 var {mongoose} = require("./db/mongoose");
 var {Todo} = require("./models/todo");
@@ -29,6 +30,23 @@ app.get("/todos", (req, resp) => {
 		resp.send({todos})
 	}, (err) => {
 		resp.status(400).send(`Error creating the todo: ${err}`)
+	})
+})
+
+app.get("/todos/:id", (req, resp) => {
+	if (!ObjectID.isValid(req.params.id))
+	{
+		resp.status(404).send("Bad id");
+		return;
+	}
+	Todo.findById(req.params.id).then((todo) => {
+		if (!todo){
+			resp.status(404).send(`Could not find Todo with id ${req.params.id}`)	
+			return;
+		}
+		resp.send({todo})
+	}, (err) => {
+		resp.status(400).send(`Bad request`)
 	})
 })
 
