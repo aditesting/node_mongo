@@ -30,7 +30,7 @@ MongoClient.connect('mongodb://127.0.0.1:27017/TodoApp', (err, db) => {
 	// 	console.log(result);
 	// })	
 
-	db.collection('Userz').findOneAndDelete({_id: new ObjectID('59df1f655d896c2d8367e608')}).then( (result) => {
+	db.collection('Users').findOneAndDelete({_id: new ObjectID('59df1f655d896c2d8367e608')}).then( (result) => {
 		console.log(result);
 		db.close();
 	})	
