@@ -23,6 +23,15 @@ app.post("/todos", (req, resp) => {
 	})
 })
 
+
+app.get("/todos", (req, resp) => {
+	Todo.find().then((todos) => {
+		resp.send({todos})
+	}, (err) => {
+		resp.status(400).send(`Error creating the todo: ${err}`)
+	})
+})
+
 app.listen(PORT, () => {
 	console.log('server started on port ${PORT}')
 })
