@@ -1,6 +1,8 @@
 const expect = require('expect');
 const request = require('supertest');
 
+const {ObjectID} = require('mongodb');
+
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
 
@@ -12,11 +14,16 @@ const initialTodos = [{
 	text: 'Third todo'
 }]
 
+var initialTodoDocsArray = null;
+
 beforeEach((done) => {
 	Todo.remove({}).then(() => {
 		return Todo.insertMany(initialTodos)
 	})
-	.then(() => done());
+	.then((arr) => {
+		initialTodoDocsArray = arr;
+		done();
+	});
 });
 
 
@@ -71,6 +78,34 @@ describe("GET /todos", () => {
 			.expect((resp) => {
 				expect(resp.body.todos.length).toBe(initialTodos.length);
 			})
+			.end(done);
+	})
+})
+
+describe("GET /todos/:id", () => {
+	it('should get a specific todo', (done) => {
+		request(app)
+			.get(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.expect(200)
+			.expect((resp) => {
+				expect(resp.body.todo).toExist();
+				expect(resp.body.todo.text).toBe(initialTodoDocsArray[0].text);
+			})
+			.end(done);
+	})
+
+	it("should fail to get a correct id", (done) => {
+		request(app)
+			.get(`/todos/${new ObjectID()}`)
+			.expect(404)
+			.end(done);
+	})
+
+
+	it("should fail to get a bad id", (done) => {
+		request(app)
+			.get(`/todos/123123122`)
+			.expect(400)
 			.end(done);
 	})
 })
