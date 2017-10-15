@@ -141,3 +141,79 @@ describe("DELETE /todos/:id", () => {
 			.end(done)
 	})
 })
+
+
+describe("PATCH /todos/:id", () => {
+	it("should update a specific todo text and status", (done) =>{
+		request(app)
+			.patch(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.send({"text": "updated text", "completed": true})
+			.expect(200)
+			.end((err, resp) => {
+				if(err){
+					done(err);
+					return;
+				};
+				Todo.findById(initialTodoDocsArray[0]._id.toHexString()).then( (todo) => {
+					expect(todo.completed).toBe(true);
+					expect(todo.completedAt).toBeA("number");
+					expect(todo.text).toBe("updated text");
+					done();
+				}, (err)=> done(err))
+			})
+	})
+
+	it("should update a specific todo text", (done) =>{
+		request(app)
+			.patch(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.send({"text": "updated text"})
+			.expect(200)
+			.end((err, resp) => {
+				if(err){
+					done(err);
+					return;
+				};
+				Todo.findById(initialTodoDocsArray[0]._id.toHexString()).then( (todo) => {
+					expect(todo.completed).toBe(false);
+					expect(todo.completedAt).toBe(null);
+					expect(todo.text).toBe("updated text");
+					done();
+				}, (err)=> done(err))
+			})
+	})
+
+
+	it("should update a specific todo status", (done) =>{
+		request(app)
+			.patch(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.send({"completed": true})
+			.expect(200)
+			.end((err, resp) => {
+				if(err){
+					done(err);
+					return;
+				};
+				Todo.findById(initialTodoDocsArray[0]._id.toHexString()).then( (todo) => {
+					expect(todo.completed).toBe(true);
+					expect(todo.completedAt).toExist();
+					done();
+				}, (err)=> done(err))
+			})
+	})
+
+	it("should return 200 for wrong id", (done)=>{
+		request(app)
+			.patch(`/todos/${new ObjectID()}`)
+			.send({"text": "updated text", "completed": true})
+			.expect(200)
+			.end(done);
+	})
+
+	it("should return 404 for bad id", (done)=>{
+		request(app)
+			.patch("/todos/123123")
+			.send({"text": "updated text", "completed": true})
+			.expect(400)
+			.end(done)
+	})
+})

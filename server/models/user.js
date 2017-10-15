@@ -1,4 +1,4 @@
-var mongoose = require("mongoose");
+var {mongoose} = require("./../db/mongoose");
 
 var User = mongoose.model('User', {
 	email: {
