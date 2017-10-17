@@ -9,6 +9,8 @@ const {mongoose} = require("./db/mongoose");
 const {Todo} = require("./models/todo");
 const {User} = require("./models/user");
 
+const {authenticate} = require("./middleware/authenticate");
+
 const PORT = process.env.PORT;
 
 var app = express();
@@ -129,6 +131,12 @@ app.post("/users", (req, resp) => {
 			resp.status(400).send(err)
 		}
 	})
+})
+
+app.get('/users/me', authenticate, (req, resp) => {
+	var token = req.header('x-auth');
+
+	resp.send(req.user);
 })
 
 
