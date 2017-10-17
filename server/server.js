@@ -106,6 +106,31 @@ app.patch("/todos/:id", (req, resp) => {
 
 })
 
+// -----------------> USERS
+
+app.post("/users", (req, resp) => {
+	var data = _.pick(req.body, ['email', 'password']);
+	var user = new User(data);
+
+
+	user.save().then((user)=>{
+		return user.generateAuthToken();
+	}).then((token)=>{
+		resp.header('x-auth', token).send({user});
+	}).catch((err)=>{
+
+    	if (err.code && err.code === 11000){
+			resp.send("User already exists.")
+		}else if (err.errors.email){
+			resp.status(400).send(err.errors.email.message)
+		}else if (err.errors.password){
+			resp.status(400).send(err.errors.password.message)
+		}else{
+			resp.status(400).send(err)
+		}
+	})
+})
+
 
 app.listen(PORT, () => {
 	console.log(`server started on port ${PORT}`)
