@@ -167,7 +167,13 @@ app.post("/users/login", (req, resp) => {
 })
 
 
-
+app.delete('/users/me/token', authenticate, (req, resp) => {
+	req.user.logout(req.token).then(()=>{
+		resp.status(200).send("logged out");
+	}, (err)=>{
+		resp.status(400).send()
+	})
+})
 
 app.get('/users/me', authenticate, (req, resp) => {
 	resp.send(req.user);

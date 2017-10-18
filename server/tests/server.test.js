@@ -346,3 +346,25 @@ describe("POST /users/login", ()=>{
 			})
 	})
 })
+
+
+describe("DELETE /users/me/token", () => {
+	it("should logout user", (done) => {
+		request(app)
+			.delete("/users/me/token")
+			.set('x-auth', initialUsers[0].tokens[0].token)
+			.expect(200)
+			.expect((resp) => {
+				expect(resp.headers['x-auth']).toNotExist();
+			})
+			.end((err, resp) => {
+				if(err) {
+					return done(err);
+				}
+				User.findById(initialUsers[0]._id).then((user) => {
+					expect(user.tokens.length).toBe(0);
+					done()
+				}).catch((err) => done(err));
+			})
+	})
+})

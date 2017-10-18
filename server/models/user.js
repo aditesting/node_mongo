@@ -66,6 +66,18 @@ UserSchema.methods.checkPass = function(pass){
 	})
 }
 
+UserSchema.methods.logout = function(token){
+	var user = this;
+
+	return user.update({
+		$pull:{
+			tokens:{
+				token: token
+			}
+		}
+	})
+}
+
 
 UserSchema.statics.findUserByCredentials = function(email, pass){
 	var User = this;
