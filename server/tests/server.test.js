@@ -5,26 +5,14 @@ const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
 
-const initialTodos = [{
-	text: 'First todo'
-},{
-	text: 'Second todo'
-},{
-	text: 'Third todo'
-}]
+const {initialTodos, populateTodos, initialUsers, populateUsers} = require('./seed/seed');
 
-var initialTodoDocsArray = null;
 
-beforeEach((done) => {
-	Todo.remove({}).then(() => {
-		return Todo.insertMany(initialTodos)
-	})
-	.then((arr) => {
-		initialTodoDocsArray = arr;
-		done();
-	});
-});
+
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 
 describe("POST /todos", () => {
@@ -85,11 +73,11 @@ describe("GET /todos", () => {
 describe("GET /todos/:id", () => {
 	it('should get a specific todo', (done) => {
 		request(app)
-			.get(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.get(`/todos/${initialTodos[0]._id.toHexString()}`)
 			.expect(200)
 			.expect((resp) => {
 				expect(resp.body.todo).toExist();
-				expect(resp.body.todo.text).toBe(initialTodoDocsArray[0].text);
+				expect(resp.body.todo.text).toBe(initialTodos[0].text);
 			})
 			.end(done);
 	})
@@ -113,14 +101,14 @@ describe("GET /todos/:id", () => {
 describe("DELETE /todos/:id", () => {
 	it("should delete a specific todo", (done) =>{
 		request(app)
-			.delete(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.delete(`/todos/${initialTodos[0]._id.toHexString()}`)
 			.expect(200)
 			.end((err, resp) => {
 				if(err){
 					done(err);
 					return;
 				};
-				Todo.findById(initialTodoDocsArray[0]._id.toHexString()).then( (todo) => {
+				Todo.findById(initialTodos[0]._id.toHexString()).then( (todo) => {
 					expect(todo).toNotExist();
 					done();
 				}, (err)=> done(err))
@@ -146,7 +134,7 @@ describe("DELETE /todos/:id", () => {
 describe("PATCH /todos/:id", () => {
 	it("should update a specific todo text and status", (done) =>{
 		request(app)
-			.patch(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.patch(`/todos/${initialTodos[0]._id.toHexString()}`)
 			.send({"text": "updated text", "completed": true})
 			.expect(200)
 			.end((err, resp) => {
@@ -154,7 +142,7 @@ describe("PATCH /todos/:id", () => {
 					done(err);
 					return;
 				};
-				Todo.findById(initialTodoDocsArray[0]._id.toHexString()).then( (todo) => {
+				Todo.findById(initialTodos[0]._id.toHexString()).then( (todo) => {
 					expect(todo.completed).toBe(true);
 					expect(todo.completedAt).toBeA("number");
 					expect(todo.text).toBe("updated text");
@@ -165,7 +153,7 @@ describe("PATCH /todos/:id", () => {
 
 	it("should update a specific todo text", (done) =>{
 		request(app)
-			.patch(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.patch(`/todos/${initialTodos[0]._id.toHexString()}`)
 			.send({"text": "updated text"})
 			.expect(200)
 			.end((err, resp) => {
@@ -173,7 +161,7 @@ describe("PATCH /todos/:id", () => {
 					done(err);
 					return;
 				};
-				Todo.findById(initialTodoDocsArray[0]._id.toHexString()).then( (todo) => {
+				Todo.findById(initialTodos[0]._id.toHexString()).then( (todo) => {
 					expect(todo.completed).toBe(false);
 					expect(todo.completedAt).toBe(null);
 					expect(todo.text).toBe("updated text");
@@ -185,7 +173,7 @@ describe("PATCH /todos/:id", () => {
 
 	it("should update a specific todo status", (done) =>{
 		request(app)
-			.patch(`/todos/${initialTodoDocsArray[0]._id.toHexString()}`)
+			.patch(`/todos/${initialTodos[0]._id.toHexString()}`)
 			.send({"completed": true})
 			.expect(200)
 			.end((err, resp) => {
@@ -193,7 +181,7 @@ describe("PATCH /todos/:id", () => {
 					done(err);
 					return;
 				};
-				Todo.findById(initialTodoDocsArray[0]._id.toHexString()).then( (todo) => {
+				Todo.findById(initialTodos[0]._id.toHexString()).then( (todo) => {
 					expect(todo.completed).toBe(true);
 					expect(todo.completedAt).toExist();
 					done();
@@ -216,4 +204,94 @@ describe("PATCH /todos/:id", () => {
 			.expect(400)
 			.end(done)
 	})
+})
+
+
+describe("GET /users/me", () => {
+	it("should return user if authenticated", (done) => {
+		request(app)
+			.get("/users/me")
+			.set('x-auth', initialUsers[0].tokens[0].token)
+			.expect(200)
+			.expect((resp) => {
+				expect(resp.body._id).toBe(initialUsers[0]._id.toHexString());
+				expect(resp.body.email).toBe(initialUsers[0].email);
+			})
+			.end(done);
+	});
+
+	it("should return 401 if not authenticated", (done) => {
+		request(app)
+			.get("/users/me")
+			.set('x-auth', 'aaaaaaaaaaaaaaaaaaaaa')
+			.expect(401)
+			.expect((resp) => {
+				expect(resp.body).toEqual({});
+			})
+			.end(done);
+	})
+})
+
+
+describe("POST  /users - login", () => {
+	it("should create a user", (done)=> {
+		var email = "test123@123.com";
+		var password = "aaaaaaa";
+		request(app)
+			.post("/users")
+			.send({
+				email,
+				password
+			})
+			.expect(200)
+			.expect((resp)=>{
+				expect(resp.headers['x-auth']).toExist()
+				expect(resp.body.user._id).toExist();
+				expect(resp.body.user.email).toBe(email);
+			})
+			.end((err)=>{
+				if (err) {
+					return done(err)
+				};
+				User.findOne({email}).then((user)=>{
+					expect(user).toExist();
+					expect(user.password).toNotBe(password);
+					done()
+				})
+			});
+	});
+
+	it("should return validation error for invalid data", (done)=> {
+		var email = "test123";
+		var password = "aaaaaaa";
+		request(app)
+			.post("/users")
+			.send({
+				email,
+				password
+			})
+			.expect(400)
+			.expect((resp)=>{
+				expect(resp.headers['x-auth']).toNotExist()
+				expect(resp.body.user).toNotExist();
+			})
+			.end(done);
+	});
+
+	it("should not create user if email in use", (done)=> {
+		var email = initialUsers[0].email;
+		var password = "aaaaaaa";
+		request(app)
+			.post("/users")
+			.send({
+				email,
+				password
+			})
+			.expect(400)
+			.expect((resp)=>{
+				expect(resp.headers['x-auth']).toNotExist()
+				expect(resp.body.user).toNotExist();
+			})
+			.end(done);
+	});
 })

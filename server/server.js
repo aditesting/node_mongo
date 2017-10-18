@@ -122,7 +122,7 @@ app.post("/users", (req, resp) => {
 	}).catch((err)=>{
 
     	if (err.code && err.code === 11000){
-			resp.send("User already exists.")
+			resp.status(400).send("User already exists.")
 		}else if (err.errors.email){
 			resp.status(400).send(err.errors.email.message)
 		}else if (err.errors.password){
@@ -133,9 +133,43 @@ app.post("/users", (req, resp) => {
 	})
 })
 
-app.get('/users/me', authenticate, (req, resp) => {
-	var token = req.header('x-auth');
+// app.post("/users/login", (req, resp) => {
+// 	var data = _.pick(req.body, ['email', 'password']);
+// 	User.findOne({email:data.email}).then((user)=>{
+// 		return user.checkPass(data.password)
+// 	}).then((user) => {
+// 		if (user){
+// 			return user.generateAuthToken();
+// 		}else{
+// 			return Promise.reject("bad credentials")
+// 		}
+// 	}).then((token) => {
+// 		console.log(2);
+// 		resp.header('x-auth', token).send();
+// 	}).catch((err) => {
+// 		console.log(err);
+// 		resp.status(400).send(err);
+// 	})
+// })
 
+app.post("/users/login", (req, resp) => {
+	var data = _.pick(req.body, ['email', 'password']);
+	User.findUserByCredentials(data.email, data.password).then((user) => {
+		if (!user){
+			return Promise.reject("Bad credentials")
+		}
+		user.generateAuthToken().then((token)=>{
+			resp.header('x-auth', token).send();
+		})
+	}).catch((err) => {
+		resp.status(400).send(err)
+	})
+})
+
+
+
+
+app.get('/users/me', authenticate, (req, resp) => {
 	resp.send(req.user);
 })
 
